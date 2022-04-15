@@ -1,0 +1,2 @@
+# chinese_ner_bert_lstm_crf
+pytorch版本的lstm+crf和bert+crf的中文ner，包含数据和完整代码
