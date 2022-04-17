@@ -74,8 +74,8 @@ class CustomNerDataset(Dataset):
 
 class TrainDevData:
     def __init__(self, train_path="data/cluener_public/train.json",
-                 dev_path="data/cluener_public/dev.json"):
-        self.train_data = CustomNerDataset(train_path)
+                 dev_path="data/cluener_public/dev.json", vocab=None):
+        self.train_data = CustomNerDataset(train_path, vocab=vocab)
         self.eval_data = CustomNerDataset(dev_path,
                                           vocab=self.train_data.char2id,
                                           tags=self.train_data.label2id)
