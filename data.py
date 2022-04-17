@@ -1,5 +1,8 @@
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, sampler
+from torch.nn.utils.rnn import pad_sequence
+
+
 import json
 
 class CustomNerDataset(Dataset):
@@ -67,6 +70,39 @@ class CustomNerDataset(Dataset):
             'labels': torch.LongTensor(labels),
             'len_chars': len(chars)
         }
+
+
+class TrainDevData:
+    def __init__(self, train_path="data/cluener_public/train.json",
+                 dev_path="data/cluener_public/dev.json"):
+        self.train_data = CustomNerDataset(train_path)
+        self.eval_data = CustomNerDataset(dev_path,
+                                          vocab=self.train_data.char2id,
+                                          tags=self.train_data.label2id)
+        self.id2char = {v: k for k, v in self.train_data.char2id.items()}
+        self.id2tag = {v: k for k, v in self.train_data.label2id.items()}
+        self.vocab_size = len(self.train_data.char2id)
+        self.num_tags = len(self.train_data.label2id)
+
+        self.train_dataloader = DataLoader(self.train_data, batch_size=25,
+                                           shuffle=True, collate_fn=self.len_collate_fn)
+        self.eval_dataloader = DataLoader(self.eval_data, batch_size=100, collate_fn=self.len_collate_fn)
+
+
+    def len_collate_fn(self, batch_data):
+        chars, labels, seq_lens = [], [], []
+        for d in batch_data:
+            chars.append(d['chars'])
+            labels.append(d['labels'])
+            seq_lens.append(d['len_chars'])
+
+        chars = pad_sequence(chars, batch_first=True, padding_value=0)
+        labels = pad_sequence(labels, batch_first=True, padding_value=0)
+        return chars, labels, torch.LongTensor(seq_lens)
+
+
+
+
 
 
 if __name__ == '__main__':

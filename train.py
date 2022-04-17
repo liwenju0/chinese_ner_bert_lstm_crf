@@ -1,35 +1,17 @@
 import torch
 
-from data import CustomNerDataset
+from data import *
 from model import NerModel
-from torch.utils.data import DataLoader
-from torch.nn.utils.rnn import pad_sequence
 import collections
 
-train_data = CustomNerDataset("data/cluener_public/train.json")
-eval_data = CustomNerDataset("data/cluener_public/dev.json", vocab=train_data.char2id, tags=train_data.label2id)
+train_dev_data = TrainDevData()
+id2tag = train_dev_data.id2tag
+id2char = train_dev_data.id2char
+train_dataloader = train_dev_data.train_dataloader
+eval_dataloader = train_dev_data.eval_dataloader
 
-id2char = {v: k for k, v in train_data.char2id.items()}
-id2tag = {v: k for k, v in train_data.label2id.items()}
-
-
-def len_collate_fn(batch_data):
-    chars, labels, seq_lens = [], [], []
-    for d in batch_data:
-        chars.append(d['chars'])
-        labels.append(d['labels'])
-        seq_lens.append(d['len_chars'])
-
-    chars = pad_sequence(chars, batch_first=True, padding_value=0)
-    labels = pad_sequence(labels, batch_first=True, padding_value=0)
-    return chars, labels, torch.LongTensor(seq_lens)
-
-
-train_dataloader = DataLoader(train_data, batch_size=25, shuffle=True, collate_fn=len_collate_fn)
-eval_dataloader = DataLoader(eval_data, batch_size=100, collate_fn=len_collate_fn)
-
-vocab_size = len(train_data.char2id)
-num_tags = len(train_data.label2id)
+vocab_size = train_dev_data.vocab_size
+num_tags = train_dev_data.num_tags
 lr = 0.001
 embedding_size = 256
 hidden_size = 128
