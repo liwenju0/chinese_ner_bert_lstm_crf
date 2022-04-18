@@ -78,6 +78,7 @@ def decode_prediction(chars, tags):
 
 def eval(model=model, eval_dataloader=eval_dataloader):
     model.eval()
+    model.to('cpu')
     result = {}
     for index, (input_tensor, true_tags, seq_lens) in enumerate(eval_dataloader):
         predict_tags = model.decode(input_tensor, seq_lens)
@@ -128,6 +129,10 @@ def train(model=model, train_loader=train_dataloader, optimizer=optimizer, sched
         epoch_count = 0
         before = -1
         for index, (input_tensor, tags, seq_lens) in enumerate(train_loader):
+            if torch.cuda.is_available():
+                input_tensor.cuda()
+                tags.cuda()
+                seq_lens.cuda()
             loss = model.compute_loss(input_tensor, tags, seq_lens)
             optimizer.zero_grad()
             loss.backward()
