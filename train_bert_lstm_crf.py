@@ -123,16 +123,16 @@ def eval(model=model, eval_dataloader=eval_dataloader):
 def train(model=model, train_loader=train_dataloader, optimizer=optimizer, scheduler=scheduler, epoch=10):
     model.train()
     if torch.cuda.is_available():
-        model.cuda()
+        model = model.cuda()
     for i in range(epoch):
         epoch_loss = 0
         epoch_count = 0
         before = -1
         for index, (input_tensor, tags, seq_lens) in enumerate(train_loader):
             if torch.cuda.is_available():
-                input_tensor.cuda()
-                tags.cuda()
-                seq_lens.cuda()
+                input_tensor = input_tensor.cuda()
+                tags = tags.cuda()
+                seq_lens = seq_lens.cuda()
             loss = model.compute_loss(input_tensor, tags, seq_lens)
             optimizer.zero_grad()
             loss.backward()
