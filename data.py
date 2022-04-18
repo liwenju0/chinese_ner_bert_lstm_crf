@@ -2,17 +2,19 @@ import torch
 from torch.utils.data import DataLoader, Dataset, sampler
 from torch.nn.utils.rnn import pad_sequence
 
-
 import json
+
 
 class CustomNerDataset(Dataset):
     def __init__(self, file_path='data/cluener_public/train.json', vocab=None, tags=None):
         self.data = []
+        self.PAD = "[PAD]"
+        self.UNK = "[UNK]"
 
         if vocab:
             self.char2id = vocab
         else:
-            self.char2id = {'PAD': 0, 'UNK': 1}
+            self.char2id = {self.PAD: 0, self.UNK: 1}
 
         if tags:
             self.label2id = tags
@@ -62,7 +64,7 @@ class CustomNerDataset(Dataset):
 
     def __getitem__(self, idx):
         chars, labels = self.data[idx]
-        chars = [self.char2id[c] if c in self.char2id else self.char2id['UNK'] for c in chars]
+        chars = [self.char2id[c] if c in self.char2id else self.char2id[self.UNK] for c in chars]
         labels = [self.label2id[lbl] for lbl in labels]
 
         return {
@@ -88,7 +90,6 @@ class TrainDevData:
                                            shuffle=True, collate_fn=self.len_collate_fn)
         self.eval_dataloader = DataLoader(self.eval_data, batch_size=100, collate_fn=self.len_collate_fn)
 
-
     def len_collate_fn(self, batch_data):
         chars, labels, seq_lens = [], [], []
         for d in batch_data:
@@ -99,10 +100,6 @@ class TrainDevData:
         chars = pad_sequence(chars, batch_first=True, padding_value=0)
         labels = pad_sequence(labels, batch_first=True, padding_value=0)
         return chars, labels, torch.LongTensor(seq_lens)
-
-
-
-
 
 
 if __name__ == '__main__':

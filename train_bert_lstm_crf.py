@@ -1,10 +1,14 @@
 import torch
 
 from data import *
-from model import NerModel
+from model import BertNerModel
 import collections
+from transformers import AutoTokenizer, AutoModelForMaskedLM
 
-train_dev_data = TrainDevData()
+tokenizer = AutoTokenizer.from_pretrained("hfl/chinese-roberta-wwm-ext")
+vocab = tokenizer.get_vocab()
+
+train_dev_data = TrainDevData(vocab=vocab)
 id2tag = train_dev_data.id2tag
 id2char = train_dev_data.id2char
 train_dataloader = train_dev_data.train_dataloader
@@ -12,13 +16,13 @@ eval_dataloader = train_dev_data.eval_dataloader
 
 vocab_size = train_dev_data.vocab_size
 num_tags = train_dev_data.num_tags
-lr = 0.001
-embedding_size = 256
+lr = 0.00001
+embedding_size = 768
 hidden_size = 128
 
-model = NerModel(embedding_size=embedding_size, hidden_size=hidden_size, vocab_size=vocab_size, num_tags=num_tags)
+model = BertNerModel(embedding_size=embedding_size, hidden_size=hidden_size, num_tags=num_tags)
 
-params = [{"params": [], 'lr': lr}, {'params': [], 'lr': 100 * lr}]
+params = [{"params": [], 'lr': lr}, {'params': [], 'lr': 1000 * lr}]
 for p in model.named_parameters():
     if "crf" in p[0]:
         params[1]['params'].append(p[1])
@@ -108,7 +112,7 @@ def eval(model=model, eval_dataloader=eval_dataloader):
         result[type].append(round(recall, 3))
         result[type].append(round(f1, 3))
     result = [(k, v) for k, v in result.items()]
-    macro_f1 = sum([v[1][-1] for v in result])/len(result)
+    macro_f1 = sum([v[1][-1] for v in result]) / len(result)
     print("macrof1 {}".format(macro_f1))
     result.sort()
     model.train()
@@ -117,6 +121,8 @@ def eval(model=model, eval_dataloader=eval_dataloader):
 
 def train(model=model, train_loader=train_dataloader, optimizer=optimizer, scheduler=scheduler, epoch=10):
     model.train()
+    if torch.cuda.is_available():
+        model.cuda()
     for i in range(epoch):
         epoch_loss = 0
         epoch_count = 0
@@ -141,6 +147,6 @@ def train(model=model, train_loader=train_dataloader, optimizer=optimizer, sched
 
         scheduler.step()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     train()
