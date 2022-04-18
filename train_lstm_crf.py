@@ -1,5 +1,6 @@
-import torch
-
+'''
+lstm+crf，训练得到的最好macro-f1是0.686。
+'''
 from data import *
 from model import LstmNerModel
 import collections

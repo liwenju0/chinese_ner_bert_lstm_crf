@@ -1,9 +1,12 @@
-import torch
+''''
+使用了bert+lstm+crf模型。
+简化起见，仅使用了bert的vocab，tokenize还是一个个字符。但是效果macro-f1 只能达到0.64
+'''
 
 from data import *
 from model import BertNerModel
 import collections
-from transformers import AutoTokenizer, AutoModelForMaskedLM
+from transformers import AutoTokenizer
 
 tokenizer = AutoTokenizer.from_pretrained("hfl/chinese-roberta-wwm-ext")
 vocab = tokenizer.get_vocab()
@@ -17,12 +20,11 @@ eval_dataloader = train_dev_data.eval_dataloader
 vocab_size = train_dev_data.vocab_size
 num_tags = train_dev_data.num_tags
 lr = 2e-5
-embedding_size = 768
 hidden_size = 128
 
-model = BertNerModel(embedding_size=embedding_size, hidden_size=hidden_size, num_tags=num_tags)
+model = BertNerModel(num_tags=num_tags)
 
-params = [{"params": [], 'lr': lr}, {'params': [], 'lr': 1000 * lr}]
+params = [{"params": [], 'lr': lr}, {'params': [], 'lr': 100 * lr}]
 for p in model.named_parameters():
     if "crf" in p[0]:
         params[1]['params'].append(p[1])
@@ -82,8 +84,7 @@ def eval(model=model, eval_dataloader=eval_dataloader):
     for index, (input_tensor, true_tags, seq_lens) in enumerate(eval_dataloader):
         if torch.cuda.is_available():
             input_tensor = input_tensor.cuda()
-            seq_lens = seq_lens.cuda()
-        predict_tags = model.decode(input_tensor, seq_lens)
+        predict_tags = model.decode(input_tensor)
         true_tags = list(true_tags.numpy())
         input_tensor = list(input_tensor.cpu().numpy())
         for pre, true, input in zip(predict_tags, true_tags, input_tensor):
@@ -134,8 +135,7 @@ def train(model=model, train_loader=train_dataloader, optimizer=optimizer, sched
             if torch.cuda.is_available():
                 input_tensor = input_tensor.cuda()
                 tags = tags.cuda()
-                seq_lens = seq_lens.cuda()
-            loss = model.compute_loss(input_tensor, tags, seq_lens)
+            loss = model.compute_loss(input_tensor, tags)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

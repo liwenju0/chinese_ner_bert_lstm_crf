@@ -6,7 +6,6 @@ from torchcrf import CRF
 from transformers import RobertaModel
 
 
-
 class LstmNerModel(nn.Module):
     def __init__(self, embedding_size=256, num_tags=41,
                  vocab_size=3675, hidden_size=128,
@@ -52,39 +51,25 @@ class LstmNerModel(nn.Module):
         return predicted_index
 
 
-
 class BertNerModel(nn.Module):
-    def __init__(self, embedding_size=768,
+    def __init__(self,
+
                  num_tags=41,
-                 hidden_size=128,
                  batch_first=True,
-                 dropout=0.1):
+                 ):
         super(BertNerModel, self).__init__()
         self.batch_first = batch_first
+
         self.model = RobertaModel.from_pretrained("hfl/chinese-roberta-wwm-ext")
-
-        self.lstm = nn.LSTM(embedding_size, hidden_size // 2,
-                            num_layers=2, batch_first=True,
-                            bidirectional=True, dropout=dropout)
-        for name, param in self.lstm.named_parameters():
-            if name.startswith("weight"):
-                nn.init.xavier_normal_(param)
-            else:
-                nn.init.zeros_(param)
-
-        self.fc = nn.Linear(hidden_size, num_tags)
+        self.fc = nn.Linear(768, num_tags)
         self.crf = CRF(num_tags, batch_first=True)
 
-    def forward(self, input_tensor, seq_lens):
+    def forward(self, input_tensor):
         input_tensor = self.model(input_tensor)
-        input_tensor = input_tensor.last_hidden_state
-        input_packed = pack_padded_sequence(input_tensor, lengths=seq_lens.cpu().type(torch.int64), batch_first=self.batch_first, enforce_sorted=False)
-        output_lstm, hidden = self.lstm(input_packed)
-        output_lstm, length = pad_packed_sequence(output_lstm, batch_first=self.batch_first)
-        output_fc = self.fc(output_lstm)
-        return output_fc
+        input_tensor = self.fc(input_tensor.last_hidden_state)
+        return input_tensor
 
-    def compute_loss(self, input_tensor, tags, seq_lens):
+    def compute_loss(self, input_tensor, tags):
         mask = torch.zeros(input_tensor.shape[:2])
         if torch.cuda.is_available():
             mask = mask.to('cuda')
@@ -92,12 +77,12 @@ class BertNerModel(nn.Module):
         else:
             mask = torch.greater(input_tensor, mask).type(torch.ByteTensor)
 
-        output_fc = self.forward(input_tensor, seq_lens)
-        loss = -self.crf(output_fc, tags, mask, reduction='mean')
+        output = self.forward(input_tensor)
+        loss = -self.crf(output, tags, mask, reduction='mean')
         return loss
 
-    def decode(self, input_tensor, seq_lens):
-        out = self.forward(input_tensor, seq_lens)
+    def decode(self, input_tensor):
+        out = self.forward(input_tensor)
         mask = torch.zeros(input_tensor.shape[:2])
         if torch.cuda.is_available():
             mask = mask.to('cuda')
