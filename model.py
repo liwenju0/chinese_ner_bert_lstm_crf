@@ -98,6 +98,6 @@ class BertNerModel(nn.Module):
         mask = torch.zeros(input_tensor.shape[:2])
         if torch.cuda.is_available():
             mask = mask.to('cuda')
-        mask = torch.greater(input_tensor, mask).type(torch.ByteTensor)
+        mask = torch.greater(input_tensor, mask).type(torch.cuda.ByteTensor)
         predicted_index = self.crf.decode(out, mask)
         return predicted_index
