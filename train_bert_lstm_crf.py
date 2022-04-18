@@ -78,12 +78,14 @@ def decode_prediction(chars, tags):
 
 def eval(model=model, eval_dataloader=eval_dataloader):
     model.eval()
-    model.to('cpu')
     result = {}
     for index, (input_tensor, true_tags, seq_lens) in enumerate(eval_dataloader):
+        if torch.cuda.is_available():
+            input_tensor = input_tensor.cuda()
+            seq_lens = seq_lens.cuda()
         predict_tags = model.decode(input_tensor, seq_lens)
         true_tags = list(true_tags.numpy())
-        input_tensor = list(input_tensor.numpy())
+        input_tensor = list(input_tensor.cpu().numpy())
         for pre, true, input in zip(predict_tags, true_tags, input_tensor):
             pre = [id2tag[t] for t in pre]
             true = [id2tag[t] for t in true]

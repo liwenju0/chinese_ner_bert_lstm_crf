@@ -88,7 +88,10 @@ class BertNerModel(nn.Module):
         mask = torch.zeros(input_tensor.shape[:2])
         if torch.cuda.is_available():
             mask = mask.to('cuda')
-        mask = torch.greater(input_tensor, mask).type(torch.cuda.ByteTensor)
+            mask = torch.greater(input_tensor, mask).type(torch.cuda.ByteTensor)
+        else:
+            mask = torch.greater(input_tensor, mask).type(torch.ByteTensor)
+
         output_fc = self.forward(input_tensor, seq_lens)
         loss = -self.crf(output_fc, tags, mask, reduction='mean')
         return loss
@@ -98,6 +101,9 @@ class BertNerModel(nn.Module):
         mask = torch.zeros(input_tensor.shape[:2])
         if torch.cuda.is_available():
             mask = mask.to('cuda')
-        mask = torch.greater(input_tensor, mask).type(torch.cuda.ByteTensor)
+            mask = torch.greater(input_tensor, mask).type(torch.cuda.ByteTensor)
+        else:
+            mask = torch.greater(input_tensor, mask).type(torch.ByteTensor)
+
         predicted_index = self.crf.decode(out, mask)
         return predicted_index
