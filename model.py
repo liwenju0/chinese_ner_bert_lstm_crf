@@ -78,7 +78,7 @@ class BertNerModel(nn.Module):
     def forward(self, input_tensor, seq_lens):
         input_tensor = self.model(input_tensor)
         input_tensor = input_tensor.last_hidden_state
-        input_packed = pack_padded_sequence(input_tensor, seq_lens, batch_first=self.batch_first, enforce_sorted=False)
+        input_packed = pack_padded_sequence(input_tensor, lengths=seq_lens.cpu().type(torch.int64), batch_first=self.batch_first, enforce_sorted=False)
         output_lstm, hidden = self.lstm(input_packed)
         output_lstm, length = pad_packed_sequence(output_lstm, batch_first=self.batch_first)
         output_fc = self.fc(output_lstm)
@@ -88,9 +88,8 @@ class BertNerModel(nn.Module):
         mask = torch.zeros(input_tensor.shape[:2])
         if torch.cuda.is_available():
             mask = mask.to('cuda')
-        mask = torch.greater(input_tensor, mask).type(torch.ByteTensor)
+        mask = torch.greater(input_tensor, mask).type(torch.cuda.ByteTensor)
         output_fc = self.forward(input_tensor, seq_lens)
-
         loss = -self.crf(output_fc, tags, mask, reduction='mean')
         return loss
 
