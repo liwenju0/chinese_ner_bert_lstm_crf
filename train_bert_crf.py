@@ -8,6 +8,8 @@ from model import BertNerModel
 import collections
 from transformers import AutoTokenizer
 
+from train_lstm_crf import  decode_prediction
+
 tokenizer = AutoTokenizer.from_pretrained("hfl/chinese-roberta-wwm-ext")
 vocab = tokenizer.get_vocab()
 
@@ -34,48 +36,6 @@ for p in model.named_parameters():
 optimizer = torch.optim.Adam(params)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
 
-
-def decode_prediction(chars, tags):
-    assert len(chars) == len(tags), "{}{}".format(chars, tags)
-    result = collections.defaultdict(set)
-    entity = ''
-    type1 = ''
-    for char, tag in zip(chars, tags):
-        if "S" in tag:
-            if entity:
-                result[type1].add(entity)
-            result[tag.split("-")[1]].add(char)
-            type1 = ''
-            entity = ''
-        elif 'B' in tag:
-            if entity:
-                result[type1].add(entity)
-            entity = char
-            type1 = tag.split('-')[1]
-        elif 'I' in tag:
-            type2 = tag.split('-')[1]
-            if type1 == type2:
-                entity += char
-            else:
-                entity += '[ERROR]'
-        elif 'E' in tag:
-            type2 = tag.split('-')[1]
-            if entity:
-                if type1 == type2:
-                    entity += char
-                else:
-                    entity += '[ERROR]'
-                result[type1].add(entity)
-                entity = ''
-                type1 = ''
-
-        else:
-            if entity:
-                result[type1].add(entity)
-            entity = ''
-    if entity:
-        result[type1].add(entity)
-    return result
 
 
 def eval(model=model, eval_dataloader=eval_dataloader):

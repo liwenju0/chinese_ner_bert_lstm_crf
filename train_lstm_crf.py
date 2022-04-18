@@ -38,21 +38,23 @@ def decode_prediction(chars, tags):
     for char, tag in zip(chars, tags):
         if "S" in tag:
             if entity:
-                result[type1].add(entity)
+                if type1 != '':
+                    result[type1].add(entity)
             result[tag.split("-")[1]].add(char)
             type1 = ''
             entity = ''
         elif 'B' in tag:
             if entity:
-                result[type1].add(entity)
+                if type1 != '':
+                    result[type1].add(entity)
             entity = char
             type1 = tag.split('-')[1]
         elif 'I' in tag:
             type2 = tag.split('-')[1]
             if type1 == type2:
                 entity += char
-            else:
-                entity += '[ERROR]'
+            elif type1 == '':
+                entity = ''
         elif 'E' in tag:
             type2 = tag.split('-')[1]
             if entity:
@@ -60,16 +62,19 @@ def decode_prediction(chars, tags):
                     entity += char
                 else:
                     entity += '[ERROR]'
-                result[type1].add(entity)
+                if type1 != '':
+                    result[type1].add(entity)
                 entity = ''
                 type1 = ''
 
         else:
             if entity:
-                result[type1].add(entity)
+                if type1 != '':
+                    result[type1].add(entity)
             entity = ''
     if entity:
-        result[type1].add(entity)
+        if type1 != '':
+            result[type1].add(entity)
     return result
 
 
